@@ -1,4 +1,7 @@
+import java.util.regex.Matcher
+
 apply plugin: 'com.android.application'
+apply plugin: 'delivery'
 
 android {
     compileSdkVersion 25
@@ -7,8 +10,8 @@ android {
         applicationId "fr.norsys.app.monapplitropbien"
         minSdkVersion 19
         targetSdkVersion 25
-        versionCode 1
-        versionName "1.0"
+        versionCode Integer.parseInt(versionId)
+        versionName version
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -27,4 +30,53 @@ dependencies {
     compile 'com.android.support:appcompat-v7:25.0.0'
     compile 'com.android.support:design:25.0.0'
     testCompile 'junit:junit:4.12'
+}
+
+delivery {
+
+    newVersionCommitPattern = 'chore (version) : Update version to $version'
+
+    releaseTagPattern = '$projectName-$versionId-$version'
+
+    releaseBranchPattern = 'release/$versionId-$version'
+
+    //please refer to https://docs.gradle.org/current/userguide/maven_plugin.html[Maven plugin]
+//    archiveRepositories = {
+//        mavenDeployer {
+//            repository(url: "MY_MAVEN_URL") {
+//                authentication([userName: 'myusername', password: 'mypassword'])
+//            }
+//            snapshotRepository(url: "MY_MAVEN_URL") {
+//                authentication([userName: 'myusername', password: 'mypassword'])
+//            }
+//        }
+//    }
+
+    failOnSnapshotDependency = true
+
+    versionPatterns = [
+            // Increments last number: "2.5-SNAPSHOT" => "2.6-SNAPSHOT"
+            /(\d+)([^\d]*$)/: { Matcher m, Project p -> m.replaceAll("${(m[0][1] as int) + 1}${m[0][2]}") }
+    ]
+
+    gitConfig {
+        requireBranch = System.getProperty('BRANCH', 'develop')
+        pushToRemote = 'origin' // needs to be def as can be boolean or string
+        password = System.getProperty('SCM_PASSWORD')
+        user = System.getProperty('SCM_USER')
+    }
+
+    //Android only
+    signingProperties {
+        all {
+            propertiesFile = project.file("debug_signing.properties")
+        }
+        release {
+            propertiesFile = project.file("signing.properties")
+            storeFileField = "storeFile"
+            storePasswordField = "storePassword"
+            keyAliasField = "keyAlias"
+            keyAliasPasswordField = "keyAliasPassword"
+        }
+    }
 }
